@@ -43,7 +43,7 @@ $app->post('/createuser', function(Request $request, Response $response){
             $message['error'] = true; 
             $message['message'] = 'Some error occurred';
 
-            $response->write(json_encode($message));
+            $response->getBody()->write(json_encode($message));
 
             return $response
                         ->withHeader('Content-type', 'application/json')
@@ -65,6 +65,50 @@ $app->post('/createuser', function(Request $request, Response $response){
         ->withHeader('Content-type', 'application/json')
         ->withStatus(422);    
 });
+
+
+$app->post('/userlogin', function(Request $request, Response $response){
+    if(!haveEmptyParameters(array('email', 'password'), $request, $response)){
+        $request_data = $request->getParsedBody(); 
+        $email = $request_data['email'];
+        $password = $request_data['password'];
+        
+        $db = new DbOperations; 
+        $result = $db->userLogin($email, $password);
+        if($result == USER_AUTHENTICATED){
+            
+            $user = $db->getUserByEmail($email);
+            $response_data = array();
+            $response_data['error']=false; 
+            $response_data['message'] = 'Login Successful';
+            $response_data['user']=$user; 
+            $response->getBody()->write(json_encode($response_data));
+            return $response
+                ->withHeader('Content-type', 'application/json')
+                ->withStatus(200);    
+        }else if($result == USER_NOT_FOUND){
+            $response_data = array();
+            $response_data['error']=true; 
+            $response_data['message'] = 'User not exist';
+            $response->getBody()->write(json_encode($response_data));
+            return $response
+                ->withHeader('Content-type', 'application/json')
+                ->withStatus(200);    
+        }else if($result == USER_PASSWORD_DO_NOT_MATCH){
+            $response_data = array();
+            $response_data['error']=true; 
+            $response_data['message'] = 'Invalid credential';
+            $response->getBody()->write(json_encode($response_data));
+            return $response
+                ->withHeader('Content-type', 'application/json')
+                ->withStatus(200);  
+        }
+    }
+    return $response
+        ->withHeader('Content-type', 'application/json')
+        ->withStatus(422);    
+});
+
 
 
 function haveEmptyParameters($required_params, $request, $response){
